@@ -1,0 +1,6 @@
+wisski_api:
+  title: 'WissKI API'
+  description: 'Configure the WissKI API' 
+  parent: wisski.content
+  route_name: wisski_api.config
+  weight: 100 

@@ -1,0 +1,37 @@
+services:
+  wisski_api.controller:
+    class: Drupal\wisski_api\Controller\WisskiApiController
+    arguments:
+      - '@plugin.manager.wisski_api'
+      - '@serializer'
+      - '@config.factory'
+      - '@current_route_match'
+      - '@request_stack'
+
+  plugin.manager.wisski_api:
+    class: Drupal\wisski_api\WisskiApiPluginManager
+    parent: default_plugin_manager
+    arguments:
+      - '@entity_type.manager'
+      - '@current_user'
+      - '@serializer'
+      - '@entity_type.repository'
+
+  logger.channel.wisski_api:
+    parent: logger.channel_base
+    arguments: ['wisski_api']
+
+  serializer.normalizer.wisski_individual:
+    class: Drupal\wisski_api\Normalizer\WisskiEntityNormalizerReloaded
+    arguments: ['@entity_type.manager', '@entity_type.repository', '@entity_field.manager']
+    tags:
+      # Setting priority is necessary here, otherwise the default EntityNormalizer will be used
+      - { name: normalizer , priority: 1 }
+
+  serializer.normalizer.wisski_pathbuilder:
+    class: Drupal\wisski_api\Normalizer\WisskiPathbuilderEntityNormalizer
+    arguments: ['@entity_type.manager', '@entity_type.repository', '@entity_field.manager']
+    tags:
+      # Setting priority is necessary here, otherwise the default EntityNormalizer will be used
+      - { name: normalizer , priority: 1 }
+

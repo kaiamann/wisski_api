@@ -1,0 +1,51 @@
+<?php
+
+/**
+ * @file
+ * Contains install and update functions for wisski_api.
+ */
+
+use Drupal\Core\File\FileSystemInterface;
+use Drupal\wisski_api\Controller\WisskiApiController;
+use Symfony\Component\Yaml\Yaml;
+
+/**
+ * Implements hook_install().
+ */
+function wisski_api_install() {
+  // Save the API configs for each API Plugin to the public file storage.
+  /** @var \Drupal\wisski_api\WisskiApiPluginManager */
+  $apiManager = \Drupal::service('plugin.manager.wisski_api');
+  foreach ($apiManager->getDefinitions() as $pluginDefinition) {
+    $configName = $pluginDefinition['config'];
+    $version = $pluginDefinition['version'];
+    $prefix = WisskiApiController::buildPrefix($version);
+
+    $config = \Drupal::configFactory()->get($configName)->getRawData();
+    unset($config['_core']);
+    // Add the current prefix to servers.
+    $config['servers'][] = ['url' => $prefix];
+    $yamlData = Yaml::dump($config);
+
+    // Save yaml file to public file storage.
+    $directory = 'public://wisski_api';
+    /** @var \Drupal\Core\File\FileSystem */
+    $fileSystem = \Drupal::service('file_system');
+    $fileSystem->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
+    // File extension HAS to be `yaml`, otherwise
+    // Drupal will deny access to the file...
+    $path = $fileSystem->saveData($yamlData, $directory . '/' . $configName . '.yaml', FileSystemInterface::EXISTS_REPLACE);
+    \Drupal::service('logger.channel.wisski_api')->notice("Saving API v$version documentation to $path");
+  }
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function wisski_api_uninstall() {
+  // Remove the yaml files from public storage.
+  $directory = 'public://wisski_api';
+  $file_system = \Drupal::service('file_system');
+  $file_system->deleteRecursive($directory);
+  \Drupal::service('logger.channel.wisski_api')->notice("Removing $directory");
+}

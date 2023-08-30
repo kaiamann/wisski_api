@@ -1,0 +1,863 @@
+openapi: 3.0.3
+info:
+  title: WissKI API - OpenAPI 3.0
+  description: |-
+    This is the WissKI API based on the OpenAPI 3.0 specification. You can find out more about
+    WissKI at [https://wiss-ki.eu](https://wiss-ki.eu). 
+    
+    Some useful links:
+    - [The WissKI project page](https://www.drupal.org/project/wisski)
+  termsOfService: http://swagger.io/terms/
+  contact:
+    email: apiteam@swagger.io
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.11
+externalDocs:
+  description: Find out more about WissKI
+  url: http://wiss-ki.eu
+tags:
+  - name: Pathbuilder
+    description: Access to Pathbuilders
+    externalDocs:
+      description: Find out more
+      url: https://wiss-ki.eu/de/node/53
+  - name: Bundle
+    description: Access to Bundles
+    externalDocs:
+      description: Find out more
+      url: https://wiss-ki.eu/de/node/52
+  - name: Entity
+    description: Access to Entities
+    externalDocs:
+      description: Find out more
+      url: https://wiss-ki.eu/de/node/52
+
+# -------------
+# --- Paths ---
+# -------------
+
+paths:
+  /pathbuilder/create:
+    post:
+      tags:
+        - Pathbuilder
+      summary: Creates a new pathbuilder
+      description: Creates a new Pathbuilder
+      operationId: createPathbuilder
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Pathbuilder'
+              format: json
+          text/xml:
+            schema:
+              $ref: '#/components/schemas/Pathbuilder'
+              format: test/xml
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: string
+                example: gemaeldesammlung
+                description: ID of the created pathbuilder
+        '400':
+          description: Malformed pathbuilder
+      security:
+        - ApiKey:
+            - wisski_api.write
+
+  /pathbuilder/import:
+    post:
+      tags:
+        - Pathbuilder
+      summary: Creates a new pathbuilder
+      description: Creates a new Pathbuilder
+      operationId: importPathbuilder
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Pathbuilder'
+              format: json
+          text/xml:
+            schema:
+              $ref: '#/components/schemas/Pathbuilder'
+              format: test/xml
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: string
+                example: gemaeldesammlung
+                description: ID of the created pathbuilder
+        '400':
+          description: Malformed pathbuilder
+      security:
+        - ApiKey:
+            - wisski_api.write
+
+  /pathbuilder/list:
+    get:
+      tags:
+        - Pathbuilder
+      summary: Lists all available Pathbuilders
+      description: Returns the IDs of the available pathbuilders
+      operationId: getPathbuilderIds
+      parameters:
+        - name: start
+          in: query
+          description: Number of Pathbuilders to skip
+          required: false
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          description: Number of Pathbuilders to return
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                example:
+                  - gemaeldesammlung
+                  - wisski_linkblock
+        '405':
+          description: Invalid input
+      security:
+        - ApiKey:
+            - wisski_api.v0.read
+
+
+  /pathbuilder/{pathbuilderId}/get:
+    get:
+      tags:
+        - Pathbuilder
+      summary: Returns the pathbuilder with the specified ID
+      description: Returns the pathbuilder with the specified ID
+      operationId: getPathbuilder
+      parameters:
+        - name: pathbuilderId
+          in: path
+          description: Pathbuilder ID
+          required: true
+          explode: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pathbuilder' 
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Pathbuilder' 
+        '400':
+          description: Invalid ID
+      security:
+        - ApiKey:
+            - wisski_api.read
+
+  /pathbuilder/{pathbuilderId}/{pathId}:
+    get:
+      tags:
+        - Pathbuilder
+      summary: Returns the details for a path in the pathbuilder.
+      description: Returns the details for a path in the pathbuilder.
+      operationId: getPath
+      parameters:
+        - name: pathbuilderId
+          in: path
+          description: Pathbuilder ID
+          required: true
+          explode: true
+          schema:
+            type: string
+        - name: pathId
+          in: path
+          description: Group ID
+          required: true
+          explode: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Path"
+        '400':
+          description: A group with this id does not exist in the requested pathbuilder.
+      security:
+        - ApiKey:
+            - wisski_api.read
+
+  /pathbuilder/{pathbuilderId}/generate:
+    get:
+      tags:
+        - Pathbuilder
+      summary: Generate bundles and fields for the pathbuilder.
+      description: Generate bundles and fields for the pathbuilder.
+      operationId: generateBundlesAndFields
+      parameters:
+        - name: pathbuilderId
+          in: path
+          description: Pathbuilder ID
+          required: true
+          explode: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: integer
+                example: 
+                  - bundles: 13
+                  - sub_bundles: 8
+                  - fields: 69
+        '400':
+          description: Invalid ID
+      security:
+        - ApiKey:
+            - wisski_api.read
+
+  /pathbuilder/{pathbuilderId}/delete:
+    delete:
+      tags:
+        - Pathbuilder
+      summary: Deletes a pathbuilder
+      description: Deletes a pathbuilder
+      operationId: deletePathbuilder
+      parameters:
+        - name: pathbuilderId
+          in: path
+          description: Pathbuilder ID
+          required: true
+          explode: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: string
+                example: gemaeldesammlung
+                description: ID of the deleted pathbuilder
+        '400':
+          description: No such pathbuilder
+      security:
+        - ApiKey:
+            - wisski_api.write
+
+  /bundle/list:
+    get:
+      tags:
+        - Bundle
+      summary: List all available Bundles
+      description: Lists the Bundle IDs of all available Bundles along with their Label
+      operationId: getBundles
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                example:
+                  bbbf2acb5226153d65f3821e36068ee6 : Person
+                  asasbbc451b719d5b7ccadd6b3257ab27c82 : Sammlungsobjekt
+
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: Entity not found
+      security:
+        - ApiKey:
+            - wisski_api.read
+
+  /bundle/{bundleId}:
+    get:
+      tags:
+        - Bundle
+      summary: Get a list of all Fields of a Bundle
+      operationId: getUrisForBundle
+      parameters:
+        - name: bundleId
+          in: path
+          description: Bundle ID
+          required: true
+          explode: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                example:
+                  - person_name
+                  - person_biography
+        '400':
+          description: Bundle ID supplied
+        '404':
+          description: Bundle not found
+      security:
+        - ApiKey:
+            - wisski_api.read
+
+  /bundle/{bundleId}/schema:
+    get:
+      tags:
+        - Bundle
+      summary: Get a list of all Fields of a Bundle
+      operationId: getEntitySchema
+      parameters:
+        - name: bundleId
+          in: path
+          description: Bundle ID
+          required: true
+          explode: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                example:
+                  - person_name
+                  - person_biography
+        '400':
+          description: Bundle ID supplied
+        '404':
+          description: Bundle not found
+      security:
+        - ApiKey:
+            - wisski_api.read
+
+  /entity/{bundleId}/list:
+    get:
+      tags:
+        - Entity
+      summary: List all URIs of Entities of a Bundle
+      description: 'Perform an entity quer the URIs of all Entities of a Bundle'
+      operationId: getEntitiesForBundle
+      parameters:
+        - name: bundleId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          description: The number of Entities to return
+          in: query
+          schema:
+            type: string
+        - name: start
+          description: The number of Entities to skip
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                example:
+                  - https://example.wisski.data.fau.de/2e2b53cf345a
+                  - https://example.wisski.data.fau.de/7e62b6a2bcfa
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: Entity not found
+      security:
+        - ApiKey:
+            - wisski_api.read
+
+  /entity/get:
+    get:
+      tags:
+        - Entity
+      summary: Get Entity by URI
+      description: Returns a WissKI Entity in a serialized format.
+      operationId: getNormalizedEntity
+      parameters:
+        - name: uri
+          in: query
+          description: URI of Entity to return
+          required: true
+          schema:
+            type: string
+        - name: lang
+          in: query
+          description: Language to return
+          required: false
+          schema:
+            type: string
+            format: uri
+        - name: expand
+          in: query
+          description: If sub-entities should be expanded.
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: meta
+          in: query
+          description: If metadata keys should be returned.
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Entity'
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: Entity not found
+
+
+  /entity/create:
+    post:
+      tags:
+        - Entity
+      summary: Create a new Entity
+      operationId: createEntity
+      parameters:
+        - name: overwrite
+          in: query
+          description: If existing entities should be overwritten.
+          required: false
+          schema:
+            type: boolean
+            default: false
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Entity'
+              format: json
+      responses:
+        '405':
+          description: Invalid input
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: integer
+                description: The Entity ID
+                example:
+                  - 1
+
+      security:
+        - ApiKey:
+            - wisski_api.read
+            - wisski_api.write
+
+  /entity/delete:
+    delete:
+      tags:
+        - Entity
+      summary: Delete an Entity
+      description: Delete the Entity with the URI
+      operationId: deleteEntity
+      parameters:
+        - name: uri
+          in: query
+          description: The URI of the Entity to be deleted
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: integer
+                description: The Entity ID
+                example: 1
+        '400':
+          description: Invalid URI
+        '404':
+          description: No Entity with this URI found
+      security:
+        - ApiKey:
+            - wisski_api.read
+
+  /entity/query:
+    get:
+      tags:
+        - Entity
+      summary: Perform an Entity query
+      description: 'Perform a query that returns the URIs of matching Entities. TODO: how to deal with GROUP/COUNT etc? put them in query params?'
+      operationId: entityQuery
+      parameters:
+        - name: test
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                example:
+                  - https://example.wisski.data.fau.de/2e2b53cf345a
+                  - https://example.wisski.data.fau.de/7e62b6a2bcfa
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: Entity not found
+      security:
+        - ApiKey:
+            - wisski_api.read
+
+  /entity/views:
+    get:
+      tags:
+        - Entity
+      summary: Get Entity views by URI
+      description: Returns the frontend view links for a single Entity
+      operationId: getViewsByURI
+      parameters:
+        - name: uri
+          in: query
+          description: Retuns the URLs where this entity is represented
+          required: true
+          schema:
+            type: string
+            format: uri
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                example: 
+                  - https://example.wisski.data.fau.de/wisski/navigate/28/view
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: Entity not found
+      security:
+        - ApiKey:
+          - wisski_api.v0.read
+  
+  /debug:
+    get:
+      tags:
+        - Entity
+      summary: Get Entity views by URI
+      description: Returns the frontend view links for a single Entity
+      operationId: debug
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                example: 
+                  - https://example.wisski.data.fau.de/wisski/navigate/28/view
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: Entity not found
+      security:
+        - ApiKey:
+          - wisski_api.v0.read
+
+# ------------------
+# --- Components ---
+# ------------------
+
+components:
+  responses:
+    test:
+      description: Test
+
+
+  schemas:
+
+    Pathbuilder:
+      type: object
+      properties:
+        id:
+          type: string
+          example: gemaeldesammlung
+          description: The ID of the pathbuilder.
+        name:
+          type: string
+          example: Gemaeldesammlung
+          description: The human redable name of the pathbuilder.
+        adapter:
+          type: string
+          example: default
+          description: The adapter that this pathbuilder uses.
+        paths:
+          type: object
+          properties:
+            pathId:
+              $ref: '#/components/schemas/Path'
+          description: The paths contained within this pathbuilder.
+      description: Abstraction of a WissKI pathbuilder.
+      
+    Path:
+      type: object
+      properties:
+        id: 
+          type: string
+          example: sammlungsobjekt
+          description: The id of the path.
+        enabled:
+          type: integer
+          example: 1
+          description: Indicates if this path is currentyl enabled.
+        parent:
+          type: string
+          example: historic_document_group
+          description: The parent group of this path.
+        bundle:
+          type: string
+          example: ea6cd7a9428f121a9a042fe66de406eb
+          description: The ID of the bundle that this path belongs to.
+        field:
+          type: string
+          example: fa782fe48f2f5f98e750dc70fc9979e1
+          description: The ID of the field that is filled by this path.
+        fieldtype:
+          type: string
+          example: string
+          description: The datatype of the data stored within this paths field.
+        displaywidget:
+          type: string
+          example: string_textfield
+          description: The widget that is used to display the field value.
+        formatterwidget:
+          type: string 
+          example: string
+          description: The widget that is used to format the field value.
+        cardinality:
+          type: integer
+          example: 1
+          description: The cardinality of the path. -1 indicates unlimited cardinality.
+        field_type_informative:
+          type: string
+          example: string
+          description: An informative description of the field type.
+        is_group:
+          type: integer
+          example: 1
+          description: Indicates if this path is a group.
+        path_array:
+          type: array
+          items: 
+            type: string
+          example:
+          - http://erlangen-crm.org/E1_Entity
+          - http://erlangen-crm.org/P1_is_identified_by
+          - http://erlangen-crm.org/E41_Appellation
+          description: The sequence of ontology components that make up the path.
+        datatype_property:
+          type: string
+          example: "http://erlangen-crm.org/P3_has_note"
+          description: The datatype property.
+        disamb:
+          type: integer
+          example: 0
+          description: The index of the disambiguation point within the path array.
+        children:
+          type: array
+          items:
+            $ref: "#/components/schemas/Path"
+          example:
+            child_path_id: { enabled: 1, parent: "path_id", "more child properties": "..." }
+          description: The child paths of this group.
+        groupId:
+          type: integer
+          example: 0
+        weight:
+          type: integer
+          example: 0
+          description: Table weight for rendering.
+      xml:
+        name: path
+
+    QueryCondition:
+      type: object
+      properties:
+        field:
+          type: string
+          example: 4beac53e2a
+          description: The field ID
+        op:
+          type: string
+          enum:
+            - CONTAINS
+            - IN
+            - '='
+            - '<'
+            - '>'
+            - '>='
+            - '<='
+            - '<>'
+          description: The operator
+        value:
+          $ref: "#/components/schemas/AnyValue"
+          
+    Bundle:
+      type: object
+      properties:
+        id: 
+          type: string
+          example: bbbf2acb5226153d65f3821e36068ee6
+        label:
+          type: string
+          example: Person
+        value:
+          type: 'object'
+          oneOf:
+            - type: 'string'
+              example: Albrecht Dürer
+            - type: 'array'
+              items:
+                type: 'string'
+              example: [firstValue , secondValue, thirdValue]
+      xml:
+        name: field
+
+    Field:
+      type: object
+      properties:
+        id: 
+          type: string
+          example: person_name
+        label:
+          type: string
+          example: Name
+        value:
+          $ref: "#/components/schemas/AnyValue"
+      xml:
+        name: field
+    
+    Entity:
+      type: object
+      properties:
+        meta:
+          $ref: "#/components/schemas/EntityMetadata"
+        data:
+          type: array
+          xml:
+            name: fields
+            wrapped: true
+          items:
+            $ref: '#/components/schemas/Field'
+      # additionalProperties: true
+      xml:
+        name: entity
+
+
+    EntityMetadata:
+      type: object
+      properties:
+        uri:
+          type: string
+          example: https://example.wisski.data.fau.de/2e2b53cf345a
+        bundle:
+          type: string
+          example: 8cd46ec1a
+        lang:
+          type: string
+          example: en
+        author: 
+          type: string
+          example: Tom Wiesing
+        eid:
+          type: integer
+          example: 420
+        sameAs:
+          type: array
+          items:
+            type: string
+          example:
+            - "https://example.wisski.data.fau.de/wisski/navigate/420"
+
+    
+    AnyValue:
+      description: 'Can be anything: string, number, array, object, etc.'
+      example: Albrecht Dürer
+
+
+  requestBodies:
+    Entity:
+      description: Entity that needs to be added to the store
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Entity'
+  
+
+  securitySchemes:
+    ApiKey:
+      type: apiKey
+      in: header
+      name: API-Key
+
+    BasicAuth:
+      type: http
+      scheme: basic

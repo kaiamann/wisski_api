@@ -1,0 +1,10 @@
+wisski_api.config:
+  path: '/admin/config/wisski/wisski_api'
+  defaults:
+    _form: '\Drupal\wisski_api\Form\WisskiApiConfigForm'
+    _title: 'WissKI API'
+  requirements:
+    _permission: 'administer wisski'
+
+route_callbacks:
+  - 'wisski_api.controller:routes'

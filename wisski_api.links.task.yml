@@ -1,0 +1,4 @@
+configuration.wisski_api:
+  route_name: wisski_api.config
+  base_route: wisski_api.config
+  title: Configure WissKI API

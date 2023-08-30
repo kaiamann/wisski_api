@@ -1,0 +1,11 @@
+permission_callbacks: 
+  - \Drupal\wisski_api\Controller\WisskiApiController::permissions
+
+wisski_api.read:
+  title: "Read"
+  description: "Read access via all WissKI APIs."
+
+wisski_api.write:
+  title: "Write"
+  description: "Write access via all WissKI APIs."
+  restrict access: true
