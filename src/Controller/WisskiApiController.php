@@ -319,9 +319,14 @@ class WisskiApiController extends ControllerBase implements ContainerInjectionIn
     // Add the body if the current request is a post request.
     if ($currentMethod === "post") {
       // @todo figure out the content type and deserialize accordingly.
+      // TODO: just pass the raw body and let each function handle
+      // it differently?
       $decodedData = Json::decode($request->getContent());
       if ($decodedData) {
         $methodParams['data'] = $decodedData;
+      }
+      else {
+        $methodParams['data'] = $request->getContent();
       }
       // TODO: add error handling here.
     }
@@ -344,8 +349,7 @@ class WisskiApiController extends ControllerBase implements ContainerInjectionIn
       return $this->buildResponse($result, $request);
     }
     catch (\Exception $exception) {
-      throw $exception;
-      // return $this->buildErrorResponse($exception->getMessage());
+      return $this->buildErrorResponse($exception->getMessage());
     }
   }
 

@@ -16,6 +16,7 @@ use Drupal\wisski_core\Entity\WisskiEntity;
 use Drupal\wisski_pathbuilder\Entity\WisskiPathbuilderEntity;
 use Drupal\wisski_pathbuilder\Entity\WisskiPathEntity;
 use Drupal\wisski_salz\AdapterHelper;
+use Drupal\wisski_salz\Entity\Adapter;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\Serializer\SerializerInterface;
@@ -148,9 +149,20 @@ class WisskiApiV0 extends PluginBase implements WisskiApiInterface, ContainerFac
   protected function loadEntity($class, $id): EntityBase {
     // @todo use the EntityTypeRepository and
     // EntityTypeManager to load if that turns out to be faster.
-    $entity = [$class, 'load']($id);
+    $entity = NULL;
+    $idType = "EID";
+    switch ($class) {
+      case WisskiEntity::class:
+        $eid = AdapterHelper::getDrupalIdForUri($id);
+        $entity = WisskiEntity::load($eid);
+        $idType = "URI";
+        break;
+
+      default: $entity = [$class, 'load']($id);
+    }
+
     if (empty($entity)) {
-      throw new NoSuchEntityException("No such entity of class: $class with ID: $id!");
+      throw new NoSuchEntityException("No such entity of class: {$class} with {$idType}: {$id}!");
     }
     return $entity;
   }
@@ -198,7 +210,7 @@ class WisskiApiV0 extends PluginBase implements WisskiApiInterface, ContainerFac
    */
   public function debug() {
     $pb = $this->getPathbuilder("gemaeldesammlung");
-    return $pb->getAllPathsForGroupId("person", TRUE);
+    return $pb->uuid();
   }
 
   /**
@@ -243,13 +255,152 @@ class WisskiApiV0 extends PluginBase implements WisskiApiInterface, ContainerFac
     $pathbuilder->delete();
   }
 
-  public function importPathbuilder($data) {
-    return $data;
+  /**
+   * {@inheritdoc}
+   */
+  public function importPathbuilder($data): void {
+    // Check if the pathbuilder already exists.
+    if ($this->loadEntity(WisskiPathbuilderEntity::class, $data['id'])) {
+      throw new EntityAlreadyExistsException(WisskiPathbuilderEntity::class, $data['id']);
+    }
+
+    // Generate a new UUID for the new PB.
+    // This needs to be done manually as it is apparently not done automatically
+    // upon saving. Not setting UUID leads to deprecation warnings, when trying
+    // to edit the field of a path in the pb. Warnings occur in:
+    // /Drupal/Core/Config/Entity/Query/Condition.php:39.
+    $uuid_service = \Drupal::service('uuid');
+    $uuid = $uuid_service->generate();
+
+    $importmode = $data['mode'];
+    $values = [
+      'uuid' => $uuid,
+      'id' => $data['id'],
+      'name' => $data['name'],
+      'adapter' => $data['adapter'],
+    ];
+
+    $pb = new WisskiPathbuilderEntity($values, "wisski_pathbuilder");
+    $xmldoc = new \SimpleXMLElement($data['xml'], 0, FALSE);
+
+    // Message logging.
+    // TODO: check if the messages should be returned to the API caller.
+    $messages = [];
+
+    // TODO: check this code from here on out...
+    // it's more or less copy-pasta from wisski_pathbuilder/WisskiPathbuiderForm::import()
+    foreach ($xmldoc->path as $path) {
+      $parentid = html_entity_decode((string) $path->group_id);
+
+      // if($parentid != 0)
+      // $parentid = wisski_pathbuilder_check_parent($parentid, $xmldoc);.
+      $uuid = html_entity_decode((string) $path->uuid);
+
+      // if(empty($uuid))
+      // Check if path already exists.
+      $path_in_wisski = WisskiPathEntity::load((string) $path->id);
+
+      // It exists, skip this...
+      if (!empty($path_in_wisski)) {
+        $messages[] = "Path with id " . $uuid . " was already existing - skipping.";
+        $pb->addPathToPathTree($path_in_wisski->id(), $parentid, $path_in_wisski->isGroup());
+        // continue;.
+      }
+      // Normal case - import the path!
+      else {
+        $path_array = [];
+        $count = 0;
+        foreach ($path->path_array->children() as $n) {
+          $path_array[$count] = html_entity_decode((string) $n);
+          $count++;
+        }
+
+        // It does not exist, create one!
+        $pathdata = [
+          'id' => html_entity_decode((string) $path->id),
+          'name' => html_entity_decode((string) $path->name),
+          'path_array' => $path_array,
+          'datatype_property' => html_entity_decode((string) $path->datatype_property),
+          'short_name' => html_entity_decode((string) $path->short_name),
+          'length' => html_entity_decode((string) $path->length),
+          'disamb' => html_entity_decode((string) $path->disamb),
+          'description' => html_entity_decode((string) $path->description),
+          'type' => (((int) $path->is_group) === 1) ? 'Group' : 'Path',
+        // 'field' => Pathbuilder::GENERATE_NEW_FIELD,
+        ];
+
+        // In D8 we do no longer allow a path/group without a name.
+        // we have to set it to a dummy value.
+        if ($pathdata['name'] == '') {
+          $pathdata['name'] = "_empty_";
+          $messages[] = $this->t(
+            'Path with id @id (@uuid) has no name. Name has been set to "_empty_".',
+            [
+              '@id' => $pathdata['id'],
+              '@uuid' => $uuid,
+            ],
+          );
+        }
+
+        $path_in_wisski = WisskiPathEntity::create($pathdata);
+
+        $path_in_wisski->save();
+
+        $pb->addPathToPathTree($path_in_wisski->id(), $parentid, $path_in_wisski->isGroup());
+      }
+
+      // Check enabled or disabled.
+      $pbpaths = $pb->getPbPaths();
+
+      $pbpaths[$path_in_wisski->id()]['enabled'] = html_entity_decode((string) $path->enabled);
+      $pbpaths[$path_in_wisski->id()]['weight'] = html_entity_decode((string) $path->weight);
+      $pbpaths[$path_in_wisski->id()]['cardinality'] = html_entity_decode((string) $path->cardinality);
+      if (html_entity_decode((string) $importmode) != "keep") {
+        if (((int) $path->is_group) === 1) {
+          $pbpaths[$path_in_wisski->id()]['bundle'] = html_entity_decode((string) $importmode);
+        }
+        else {
+          $pbpaths[$path_in_wisski->id()]['field'] = html_entity_decode((string) $importmode);
+        }
+      }
+      else {
+        $pbpaths[$path_in_wisski->id()]['bundle'] = html_entity_decode((string) $path->bundle);
+        $pbpaths[$path_in_wisski->id()]['field'] = html_entity_decode((string) $path->field);
+
+        if ($path->fieldtype) {
+          $pbpaths[$path_in_wisski->id()]['fieldtype'] = html_entity_decode((string) $path->fieldtype);
+        }
+
+        if ($path->displaywidget) {
+          $pbpaths[$path_in_wisski->id()]['displaywidget'] = html_entity_decode((string) $path->displaywidget);
+        }
+
+        if ($path->formatterwidget) {
+          $pbpaths[$path_in_wisski->id()]['formatterwidget'] = html_entity_decode((string) $path->formatterwidget);
+        }
+      }
+      $pb->setPbPaths($pbpaths);
+
+    }
+
+    $pb->save();
   }
 
   /**
    * {@inheritDoc}
-   *
+   */
+  public function exportPathbuilder(string $pathbuilderId): array {
+    /** @var \Drupal\wisski_pathbuilder\Entity\WisskiPathbuilderEntity */
+    $pathbuilder = $this->loadEntity(WisskiPathbuilderEntity::class, $pathbuilderId);
+    return [
+      'id' => $pathbuilder->id(),
+      'name' => $pathbuilder->getName(),
+      'adapter' => $pathbuilder->getAdapterId(),
+      'xml' => $pathbuilder->toXML(),
+    ];
+  }
+
+  /**
    * This code should probably be moved the the pathbuilder itself...
    */
   public function generateBundlesAndFields(string $pathbuilderId) {
@@ -376,10 +527,8 @@ class WisskiApiV0 extends PluginBase implements WisskiApiInterface, ContainerFac
    * {@inheritdoc}
    */
   public function getEntityLanguages(string $uri): array {
-    // Get EID and load entity.
-    $eid = AdapterHelper::getDrupalIdForUri($uri);
     /** @var \Drupal\wisski_core\Entity\WisskiEntity */
-    $entity = $this->loadEntity(WisskiEntity::class, $eid);
+    $entity = $this->loadEntity(WisskiEntity::class, $uri);
     return array_keys($entity->getTranslationLanguages());
   }
 
@@ -387,10 +536,8 @@ class WisskiApiV0 extends PluginBase implements WisskiApiInterface, ContainerFac
    * {@inheritdoc}
    */
   public function getEntity(string $uri, ?string $lang = NULL): WisskiEntity {
-    // Get EID and load entity.
-    $eid = AdapterHelper::getDrupalIdForUri($uri);
     /** @var \Drupal\wisski_core\Entity\WisskiEntity */
-    $entity = $this->loadEntity(WisskiEntity::class, $eid);
+    $entity = $this->loadEntity(WisskiEntity::class, $uri);
 
     // Get the translated entity if a langcode was specified.
     if ($lang) {
@@ -524,3 +671,34 @@ class WisskiApiV0 extends PluginBase implements WisskiApiInterface, ContainerFac
  * Error class indicating that an entity does not exist.
  */
 class NoSuchEntityException extends \Exception {}
+
+/**
+ * Class indicating that a Pathbuilder already exists.
+ */
+class EntityAlreadyExistsException extends \Exception {
+
+  /**
+   * The class of the entity that already exists.
+   *
+   * @var string
+   */
+  public string $class;
+
+  /**
+   * The id of the entity that already exists.
+   *
+   * @var string
+   */
+  public string $id;
+
+  /**
+   * {@inheritDoc}
+   */
+  public function __construct(string $class, string $id, int $code = 0, \Throwable $previous = NULL) {
+    $this->class = $class;
+    $this->id = $id;
+    $message = "Entity of class '{$class}' with id '{$id}' already exists!";
+    parent::__construct($message, $code, $previous);
+  }
+
+}

@@ -45,6 +45,35 @@ interface WisskiApiInterface {
   public function createPathbuilder(array $data, $format = NULL): void;
 
   /**
+   * Import a pathbuilder in the xml format.
+   *
+   * @param array $data
+   *   Data that describes the pathbuilder:
+   *   Array with the following keys:
+   *    - id: Id of the pathbuilder.
+   *    - name: display name of the pathbuilder.
+   *    - adapter: the adapter to which the pathbuilder belongs.
+   *    - xml: the pathbuilder represented in an xml format.
+   */
+  public function importPathbuilder(array $data): void;
+
+  /**
+   * Export a pathbuilder in xml format.
+   *
+   * @param string $pathbuilderId
+   *   The id of the pathbuilder to be exported.
+   *
+   * @return array
+   *   Data that describes the pathbuilder:
+   *   Array with the following keys:
+   *    - id: Id of the pathbuilder.
+   *    - name: display name of the pathbuilder.
+   *    - adapter: the adapter to which the pathbuilder belongs.
+   *    - xml: the pathbuilder represented in an xml format.
+   */
+  public function exportPathbuilder(string $pathbuilderId): array;
+
+  /**
    * Delete a pathbuilder.
    *
    * @param string $pathbuilderId

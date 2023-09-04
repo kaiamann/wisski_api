@@ -22,7 +22,7 @@ services:
     arguments: ['wisski_api']
 
   serializer.normalizer.wisski_individual:
-    class: Drupal\wisski_api\Normalizer\WisskiEntityNormalizerReloaded
+    class: Drupal\wisski_api\Normalizer\WisskiEntityNormalizer
     arguments: ['@entity_type.manager', '@entity_type.repository', '@entity_field.manager']
     tags:
       # Setting priority is necessary here, otherwise the default EntityNormalizer will be used

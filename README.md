@@ -29,7 +29,7 @@ In this plugin annotation you can also define custom permissions to be used in t
     id = "wisski_api_v0",
     // Version of the API.
     version = 0,
-    // Name of the config in config/install
+    // Name of the config file in config/install
     config = "wisski_api.v0"
     // Custom permission definition.
     permissions = {
@@ -48,26 +48,40 @@ Since the module reads the Swagger UI file to create the routes, some special cr
 - The function name that should be called when a route is accessed has to specified in the `operationId` key of each path.
 - Parameters for each path also have to be named like they are named in the signature in the correpsonding API function.
 - Since each method can potentailly take query and path parameters the location where each parameter can be found shoud be specified in the parameter declarations' `in` key.
-- Custom permissions defined in each API's plugin annotation can be set by setting them into the `security` key.
+- Custom permissions defined in each API's plugin annotation can be set by adding them into the `security` key.
 - In case a `POST` route should read data from the HTTP request body, the parameter of the API function has to be named `$data`.
 
 Partial example for a path in the Swagger UI `.yml` config:
 ```yaml
-/pathbuilder/{pathbuilderId}/delete:
+/example/{exampleParameter}:
     post:
         ...
-        operationId: deletePathbuilder
+        operationId: exampleFunction
         parameters:
-            - name: pathbuilderId
+            - name: exampleParameter
               in: path
-              description: Pathbuilder ID
+              description: An example parameter to be passed to the API function
               required: true
               explode: true
               schema:
                   type: string
         security:
             - ApiKey:
-                - wisski_api.v0.write
+                - example_api.v0.write
+```
+This would call the corresponding API function:
+```php
+/**
+ * An example function.
+ * 
+ * @param string $exampleParameter
+ *   An example parameter. Name has to match the one specified in 'parameters'.
+ * @param $data string|array $data
+ *   The request body of the post request.
+ */
+public function exampleFunction(string $exampleParameter, string|array $data) {
+    // do something...
+}
 ```
 
 ### Development Workflows

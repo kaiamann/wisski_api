@@ -2,13 +2,10 @@
 
 namespace Drupal\wisski_api\Normalizer;
 
-use Drupal\Core\Field\BaseFieldDefinition;
-use Drupal\Core\Field\FieldItemInterface;
-use Drupal\Core\Field\FieldItemListInterface;
-use Drupal\field\Entity\FieldConfig;
 use Drupal\serialization\Normalizer\EntityNormalizer;
 use Drupal\wisski_core\Entity\WisskiEntity;
 use Drupal\wisski_core\WisskiEntityInterface;
+use Drupal\wisski_pathbuilder\Entity\WisskiPathbuilderEntity;
 use Drupal\wisski_salz\AdapterHelper;
 
 /**
@@ -17,6 +14,34 @@ use Drupal\wisski_salz\AdapterHelper;
 class WisskiEntityNormalizer extends EntityNormalizer {
 
   const ENTITY_TYPE = "wisski_individual";
+
+  const META_KEYS = [
+    'eid',
+    'uuid',
+    'vid',
+    'langcode',
+    'revision_timestamp',
+    'revision_uid',
+    'revision_log',
+    'published',
+    'label',
+    'uid',
+    'created',
+    'changed',
+    'status',
+    'preview_image',
+    'default_langcode',
+    'revision_default',
+    'revision_translation_affected',
+    'content_translation_source',
+    'content_translation_outdated',
+    'content_translation_uid',
+  ];
+
+  const WISSKI_KEYS = [
+    'wisski_uri',
+    'bundle',
+  ];
 
   /**
    * {@inheritdoc}
@@ -27,179 +52,100 @@ class WisskiEntityNormalizer extends EntityNormalizer {
    * {@inheritdoc}
    */
   public function normalize($object, $format = NULL, array $context = []) {
-    return $this->normalizeEntity($object);
-  }
+    $normalized = parent::normalize($object, $format, $context);
 
-  /**
-   * Normalize a WisskiEntity.
-   *
-   * @param \Dupal\wisski_core\Entity\WisskiEntity $entity
-   *   The entity to be normalized.
-   *
-   * @return array
-   *   The normalized entity.
-   */
-  public function normalizeEntity($entity) {
-    $normalizedEntity = [];
-    foreach ($entity as $fieldId => $fieldItem) {
-      $fieldDefinition = $fieldItem->getFieldDefinition();
-      $normalizedFieldItem = $this->normalizeFieldItem($fieldItem);
+    // Get PbPaths and re-key them to fieldId.
+    $pbs = WisskiPathbuilderEntity::loadMultiple();
+    $pbPaths = [];
+    foreach ($pbs as $pb) {
+      $paths = $pb->getPbPaths();
+      foreach ($paths as $id => $path) {
+        $path['is_group'] = $path['bundle'] == $path['field'];
+        $paths[$id] = $path;
+      }
+      $pbPaths += $paths;
+    }
 
-      // @todo figure out if separation by class is the right way to go
-      // BaseFields.
-      if ($fieldDefinition instanceof BaseFieldDefinition) {
-        $normalizedEntity['meta'][$fieldId] = $normalizedFieldItem;
+    // Get current bundle.
+    $bundle = $object->bundle();
+
+    // Create the fid->pathId mapping.
+    $fidMap = [];
+    foreach ($pbPaths as $pbPath) {
+      $fidMap[$pbPath['field']] = $pbPath['id'];
+    }
+
+    foreach ($normalized as $fieldId => $values) {
+      if (in_array($fieldId, self::META_KEYS)) {
+        if (array_key_exists('meta', $context) && !$context['meta']) {
+          unset($normalized[$fieldId]);
+        }
         continue;
       }
-      // FieldConfigs.
-      if ($fieldDefinition instanceof FieldConfig) {
-        $normalizedEntity['fields'][$fieldId] = $normalizedFieldItem;
-        continue;
+
+      foreach ($values as $idx => $keys) {
+        // Catch entity references and replace EID with URIs them.
+        if (array_key_exists('target_type', $keys) && $keys['target_type'] == 'wisski_individual') {
+          // Check if entity references should be expanded.
+          if (array_key_exists('expand', $context) && $context['expand']) {
+            // Check if the field is a bundle. This makes sure
+            // that we never expand entity-references, which might contain
+            // circular relations. Also make sure that this sub-bundle belongs
+            // to the current entity's bundle.
+            if ($pbPaths[$fidMap[$fieldId]]['is_group'] && self::belongsTo($fieldId, $bundle, $pbPaths, $fidMap)) {
+              $normalized[$fieldId][$idx] = [];
+              $subEntity = WisskiEntity::load($keys['target_id']);
+              $normalized[$fieldId][$idx]['entity'] = $this->normalize($subEntity, context: $context);
+              continue;
+            }
+          }
+          $uri = current(AdapterHelper::doGetUrisForDrupalIdAsArray($keys['target_id']));
+          $normalized[$fieldId][$idx] = [];
+          $normalized[$fieldId][$idx]['target_uri'] = $uri;
+        }
       }
     }
-    // dpm($normalizedEntity);
-    return $normalizedEntity;
+    return $normalized;
   }
 
   /**
-   * Normalizes a single FieldItem.
+   * Recursively check if a field belongs to a bundle.
    *
-   * @param \Drupal\Core\Field\FieldItemInterface $fieldItem
-   *   The FieldItem to be formatted.
+   * @param string $fieldId
+   *   The ID of the field to be checked.
+   * @param string $bundleId
+   *   The ID of the bundle that should be checked.
+   * @param array $pbPaths
+   *   The pbPaths array from the pathbuilder(s).
+   * @param array $fidMap
+   *   An array that maps from fieldIds to pathIds.
    *
-   * @return array
-   *   The normalized FieldItem.
+   * @return bool
+   *   TRUE if the field belongs to the bundle, FALSE otherwise.
    */
-  private function normalizeFieldItem(FieldItemInterface|FieldItemListInterface $fieldItem) {
-    // Get values and definition.
-    $fieldValue = $fieldItem->getValue();
-    $fieldDefinition = $fieldItem->getFieldDefinition();
-
-    // Get the type of the field and the Label.
-    $fieldType = $fieldDefinition->getType();
-    $normalizedFieldItem['label'] = $fieldDefinition->getLabel();
-    $normalizedFieldItem['type'] = $fieldDefinition->getType();
-
-    // Normalize each of the values and return the result.
-    $normalizedFieldValue = [];
-
-    foreach ($fieldValue as $value) {
-      $normalizedFieldValue[] = $this->normalizeFieldValue($fieldType, $value);
+  protected static function belongsTo(string $fieldId, string $bundleId, array $pbPaths, array $fidMap) {
+    // Return FALSE if the fieldId is not known.
+    if (!array_key_exists($fieldId, $fidMap)) {
+      return FALSE;
     }
-
-    $normalizedFieldItem['value'] = $normalizedFieldValue;
-    return $normalizedFieldItem;
-  }
-
-  /**
-   * Normalizes a particiular FieldValue.
-   *
-   * @param string $fieldType
-   *   The type of field.
-   * @param array $value
-   *   The value of the field.
-   *
-   * @return array
-   *   The normalized field value.
-   */
-  private function normalizeFieldValue(string $fieldType, array $value) {
-    // Handle each content type differently.
-    $normalizedValue = [];
-    switch ($fieldType) {
-      case 'entity_reference':
-        $normalizedValue = $this->normalizeEntityReference($value);
-        break;
-
-      case 'image':
-      case 'link':
-        $normalizedValue = $value;
-        break;
-
-      /*
-       * Other contentTypes:
-       *
-       * 'string'
-       * 'text_long'
-       * 'integer'
-       * 'language'
-       * 'boolean
-       */
-      default:
-        $normalizedValue = $this->defaultValueNormalizer($value);
+    // Return FALSE if the parent bundle is not known.
+    $child = $pbPaths[$fidMap[$fieldId]];
+    if (!array_key_exists($child['parent'], $pbPaths)) {
+      return FALSE;
     }
-    return $normalizedValue;
-  }
-
-  /**
-   * Normalize a FieldValue of type 'entity_reference'.
-   *
-   * Adds the URI of the referenced 'wisski_individual' to the value array.
-   *
-   * @param array $value
-   *   The value of an entity_reference field.
-   *
-   * @return array
-   *   The normalized value.
-   */
-  private function normalizeEntityReference(array $value) {
-    // Entity reference.
-    $targetId = NULL;
-    if (!array_key_exists('target_id', $value)) {
-      return $value;
+    $parent = $pbPaths[$child['parent']];
+    if ($parent['field'] == $bundleId) {
+      return TRUE;
     }
-    $targetId = $value['target_id'];
-
-    $normalizedValue = [];
-    $normalizedValue['target_id'] = $targetId;
-
-    if (array_key_exists('wisskiDisamb', $value)) {
-      $normalizedValue['wisskiDisamb'] = $value['wisskiDisamb'];
-    }
-    // @todo find out what the following key
-    // is for and in which cases it is set.
-    if (array_key_exists('original_target_id', $value)) {
-      $normalizedValue['original_target_id'] = $value['original_target_id'];
-    }
-
-    // Load the referenced entity from storage.
-    $entity = $this->entityTypeManager->getStorage(self::ENTITY_TYPE)->load($targetId);
-    if (!$entity) {
-      return $normalizedValue;
-    }
-
-    // Get the URI for the entity and set it.
-    $uriAdapter = current(AdapterHelper::doGetUrisForDrupalId($targetId));
-    $normalizedValue['target_uri'] = $uriAdapter->uri;
-    // Set the adapter ID.
-    $normalizedValue['target_adapter_id'] = $uriAdapter->adapter_id;
-
-    // @todo find out which keys are unneccessary and remove them.
-    return $normalizedValue;
-  }
-
-  /**
-   * The default value normalizer.
-   *
-   * Just returns the ['value'] element from the value array.
-   *
-   * @param array $value
-   *   The value of a FieldItem.
-   *
-   * @return mixed
-   *   The value.
-   */
-  private function defaultValueNormalizer(array $value) {
-    if (array_key_exists('value', $value)) {
-      return $value['value'];
-    }
-    return NULL;
+    // Check if the fields' parent bundle belongs to the specified bundle.
+    return self::belongsTo($parent['field'], $bundleId, $pbPaths, $fidMap);
   }
 
   /**
    * {@inheritdoc}
    */
   public function denormalize($data, $class, $format = NULL, array $context = []) {
-    return $this->denormalizeEntity($data);
+    return $this->denormalizeEntity($data, $format, $context);
   }
 
   /**
@@ -207,31 +153,61 @@ class WisskiEntityNormalizer extends EntityNormalizer {
    *
    * @param array $data
    *   The normalized entity.
+   * @param string $format
+   *   The format the entity should was deserialized from.
+   * @param array $context
+   *   Context for the denormalizer.
+   *   Keys:
+   *   - bool 'meta': If TRUE Metadata will be included.
+   *   - bool 'expand': If TRUE sub-entities will be expanded.
    *
    * @return \Drupal\wisski_core\Entity\WisskiEntity
    *   The denormalized entity.
    */
-  private function denormalizeEntity(array $data): WisskiEntity {
-    $allFields = [];
-    // Combine all fields.
-    $allFields += $data['meta'];
-    $allFields += $data['fields'];
+  private function denormalizeEntity(array $data, ?string $format = NULL, array $context = []): WisskiEntity {
+    foreach ($data as $fieldId => $values) {
+      if (in_array($fieldId, self::META_KEYS) || in_array($fieldId, self::WISSKI_KEYS)) {
+        continue;
+      }
 
-    $entity_fields = [];
-    foreach ($allFields as $fieldId => $field) {
-      // $label = $field['label'];
-      $type = $field['type'];
-      $value = $field['value'];
+      foreach ($values as $idx => $keys) {
+        // Catch entity references and redirect them.
+        if (array_key_exists('target_uri', $keys)) {
+          $eid = AdapterHelper::getDrupalIdForUri($keys['target_uri']);
+          $data[$fieldId][$idx] = [];
+          $data[$fieldId][$idx]['target_id'] = $eid;
+        }
+        elseif (array_key_exists('entity', $keys)) {
+          $subEntityData = $keys['entity'];
 
-      // In case of an entity reference get the EID from the URI.
-      if ($type === "entity_reference") {
-        if (array_key_exists('target_uri', $value)) {
-          $value['target_id'] = AdapterHelper::getDrupalIdForUri($value['target_uri']);
+          // Check if an existing sub-entity is referenced.
+          if (array_key_exists('wisski_uri', $subEntityData)) {
+            // TODO: see if this makes a difference. Theoretically the
+            // normal denormalization should already give the new entity
+            // a fitting EID.
+            // Do not create a new EID when this one has not been found.
+            $eid = AdapterHelper::getDrupalIdForUri($subEntityData['wisski_uri'][0]['value'], FALSE);
+            $subEntityData['eid'][] = ['value' => $eid];
+          }
+
+          /** @var \Drupal\wisski_core\Entity\WisskiEntity */
+          $entity = $this->denormalizeEntity($subEntityData, $format, $context);
+          $entity->save();
+          if (!$entity) {
+            continue;
+          }
+
+          // Reset the current entry.
+          $data[$fieldId][$idx] = [];
+          // Replace with Drupal-style entity reference.
+          $data[$fieldId][$idx]['target_id'] = $entity->id();
+          $data[$fieldId][$idx]['target_type'] = self::ENTITY_TYPE;
+          // $data[$fieldId][$idx]['target_uuid'] = NULL;
         }
       }
-      $entity_fields[$fieldId] = $value;
     }
-    return $this->entityTypeManager->getStorage(self::ENTITY_TYPE)->create($entity_fields);
+    return parent::denormalize($data, WisskiEntity::class, $format);
+    // $this->entityTypeManager->getStorage(self::ENTITY_TYPE)->create($data);.
   }
 
 }

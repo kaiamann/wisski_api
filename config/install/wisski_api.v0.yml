@@ -83,11 +83,41 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Pathbuilder'
-              format: json
+              format: text/xml
           text/xml:
             schema:
               $ref: '#/components/schemas/Pathbuilder'
               format: test/xml
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: string
+                example: gemaeldesammlung
+                description: ID of the created pathbuilder
+        '400':
+          description: Malformed pathbuilder
+      security:
+        - ApiKey:
+            - wisski_api.write
+
+  /pathbuilder/{pathbuilderId}/export:
+    get:
+      tags:
+        - Pathbuilder
+      summary: Exports an existing pathbuilder
+      description: Exports an existing pathbuilder
+      operationId: exportPathbuilder
+      parameters:
+        - name: pathbuilderId
+          in: path
+          description: Pathbuilder ID
+          required: true
+          explode: true
+          schema:
+            type: string
       responses:
         '200':
           description: Successful operation
