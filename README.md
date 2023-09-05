@@ -2,8 +2,10 @@
 This module provides access to the main WissKI functionalities through an HTTP REST interface.
 
 ## Requirements
-This module requires the [Swagger UI Field Formatter](https://www.drupal.org/project/swagger_ui_formatter) to be installed to be able to render the API documentation.
-The module then saves the API configuration into `public://wisski_api/CONFIG_NAME.yaml`, (`/sites/default/files/` is usually the default expansion of `public://`) to be able to render the specification on the site.
+This module requires the [Swagger UI Field Formatter](https://www.drupal.org/project/swagger_ui_formatter) to be installed to be able to render the API documentation. 
+If you do not have it installed the API functionality will still work.
+
+On installation the module then saves the API configurations from `config/install` into `public://wisski_api/`, (`/sites/default/files/` is usually the default expansion of `public://`) to be able to render the specification on the site.
 It also requires the [HTTP Basic Authentication](https://www.drupal.org/docs/8/core/modules/basic_auth) module for enabling HTTP basic auth for the API routes.
 
 ## Configuration
@@ -11,7 +13,7 @@ The API can be managed in the configuration section which can be found by naviga
 On this page users can en/disable the availabe API versions.
 
 ### Permissions
-Access rights can be managed by klicking on `Mange WissKI API Permissions`.
+Access rights can be managed by klicking on `Mange WissKI API Permissions` on the configuration section.
 Per default the module comes with two permissions.
 These are `Read` and `Write`, which allow users to access `GET` (`Read`) and `POST`,`DELETE` (`Write`) HTTP requests respectively.
 These default permssions grant the respective access rights to every activated API.
@@ -26,20 +28,21 @@ In this plugin annotation you can also define custom permissions to be used in t
 ```json
 @WisskiAPI {
     // The Plugin Id. Required by Drupal.
-    id = "wisski_api_v0",
+    id = "example_api_v0",
     // Version of the API.
     version = 0,
     // Name of the config file in config/install
-    config = "wisski_api.v0"
+    config = "example_api.v0"
     // Custom permission definition.
     permissions = {
-        "wisski_api.v0.read" = {
+        "example_api.v0.wrte" = { // Name of the permission. Use this in the security section of the .yml
             // Displayed in the permissions overview.
-            "title" = @Translation("Read V0"),
+            "title" = @Translation("Read example V0"),
             // Displayed in the permissions overview.
-            "description" = @Translation("Read access via WissKI API V0."),
+            "description" = @Translation("Write access via example API V0."),
             // Set this to true in case it is relevant for security.
-            "restrict access" = false,
+            // Usually should be set to true for "POST" and "DELETE" routes.
+            "restrict access" = true,
         },
     }
 }
