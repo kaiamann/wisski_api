@@ -89,4 +89,5 @@ In case you change the Swagger UI configuration you may need to reinstall the mo
 ```
 drush pm:uninstall wisski_api && drush pm:install wisski_api
 ```
+After this you will have to enable the API again and set permissions as needed.
 
