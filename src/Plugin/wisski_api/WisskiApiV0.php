@@ -16,7 +16,6 @@ use Drupal\wisski_core\Entity\WisskiEntity;
 use Drupal\wisski_pathbuilder\Entity\WisskiPathbuilderEntity;
 use Drupal\wisski_pathbuilder\Entity\WisskiPathEntity;
 use Drupal\wisski_salz\AdapterHelper;
-use Drupal\wisski_salz\Entity\Adapter;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\Serializer\SerializerInterface;

@@ -73,10 +73,8 @@ class WisskiPathbuilderEntityNormalizer extends EntityNormalizer {
    */
   public function normalize($object, $format = NULL, array $context = []): array {
     if ($object instanceof WisskiPathbuilderEntity) {
-      // return [
-      //   'tree' => $object->getPathTree(),
-      //   'paths' => $object->getPbPaths(),
-      // ];
+      // 'tree' => $object->getPathTree(),.
+      // 'paths' => $object->getPbPaths(),.
       return $this->normalizePathbuilder($object);
     }
     return NULL;
@@ -135,7 +133,6 @@ class WisskiPathbuilderEntityNormalizer extends EntityNormalizer {
 
       // Handle children recursively.
       $children = $this->mergePathTreeAndPbPaths($data['children'], $pbPaths);
-      // TODO: hide empty children?
       $normalizedPath['children'] = $children;
       $normalizedTrees[$id] = $normalizedPath;
     }

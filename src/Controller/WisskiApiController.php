@@ -318,9 +318,9 @@ class WisskiApiController extends ControllerBase implements ContainerInjectionIn
 
     // Add the body if the current request is a post request.
     if ($currentMethod === "post") {
-      // @todo figure out the content type and deserialize accordingly.
       // TODO: just pass the raw body and let each function handle
-      // it differently?
+      // deserialize by itself, or enforce JSON?
+      // Try to decode to JSON, if not possible just pass the raw content.
       $decodedData = Json::decode($request->getContent());
       if ($decodedData) {
         $methodParams['data'] = $decodedData;
@@ -542,7 +542,7 @@ class WisskiApiController extends ControllerBase implements ContainerInjectionIn
         $route = $this->buildRoute($substitutedPath, $handler, $method, $permissions);
 
         // Prefix the supported method name to avoid overwriting
-        // in case of multiple methods per path.
+        // in case of multiple HTTP methods per path.
         $routeName = $method . "." . self::getRouteNameFromPath($substitutedPath);
         $routeCollection->add($routeName, $route);
       }
