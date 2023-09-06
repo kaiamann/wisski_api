@@ -8,3 +8,4 @@ dependencies:
   - wisski:wisski_core
   - wisski:wisski_pathbuilder
   - core:basic_auth
+  - core:serialization
