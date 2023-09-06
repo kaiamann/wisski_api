@@ -259,9 +259,11 @@ class WisskiApiV0 extends PluginBase implements WisskiApiInterface, ContainerFac
    */
   public function importPathbuilder($data): void {
     // Check if the pathbuilder already exists.
-    if ($this->loadEntity(WisskiPathbuilderEntity::class, $data['id'])) {
+    try {
+      $this->loadEntity(WisskiPathbuilderEntity::class, $data['id']);
       throw new EntityAlreadyExistsException(WisskiPathbuilderEntity::class, $data['id']);
     }
+    catch (NoSuchEntityException) {}
 
     // Generate a new UUID for the new PB.
     // This needs to be done manually as it is apparently not done automatically
