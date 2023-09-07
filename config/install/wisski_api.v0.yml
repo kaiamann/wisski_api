@@ -495,8 +495,8 @@ paths:
     post:
       tags:
         - Entity
-      summary: Create a new Entity
-      operationId: createEntity
+      summary: Create new entities
+      operationId: createEntities
       parameters:
         - name: overwrite
           in: query
@@ -519,10 +519,13 @@ paths:
           content:
             application/json:
               schema:
-                type: integer
-                description: The Entity ID
+                type: array
+                items:
+                  type: string
+                description: The URIs of the created entities.
                 example:
-                  - 1
+                  - "https://example.wisski.de/12345678"
+                  - "https://example.wisski.de/87654321"
 
       security:
         - ApiKey:

@@ -564,10 +564,24 @@ class WisskiApiV0 extends PluginBase implements WisskiApiInterface, ContainerFac
     return $this->serializer->normalize($entity, context: $context);
   }
 
+  public function createEntities(array $data, bool $overwrite = FALSE): array {
+    $entities = [];
+    foreach($data as $entity) {
+      // TODO: this is a hack for now. Use the expand and meta parameters in the controller::buildResponse.
+      $context = [
+        'expand' => TRUE,
+        'meta' => FALSE,
+      ];
+      $entity = $this->createEntity($entity, $overwrite);
+      $entities[] = $this->serializer->normalize($entity, context: $context);
+    }
+    return $entities;
+  }
+
   /**
    * {@inheritdoc}
    */
-  public function createEntity(array $data, bool $overwrite = FALSE): string {
+  public function createEntity(array $data, bool $overwrite = FALSE) {
     if (array_key_exists('eid', $data)) {
       throw new \Exception("The EID key is not supported!");
     }
@@ -592,8 +606,9 @@ class WisskiApiV0 extends PluginBase implements WisskiApiInterface, ContainerFac
     $uri = $entity->get("wisski_uri")->value;
     if (!$uri) {
       $uri = current(AdapterHelper::getUrisForDrupalId($entity->id(), NULL, FALSE));
+      $entity->set("wisski_uri", $uri);
     }
-    return $uri;
+    return $entity;
   }
 
   /**

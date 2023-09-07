@@ -156,7 +156,7 @@ interface WisskiApiInterface {
    * @return string
    *   The URI of the new Entity.
    */
-  public function createEntity(array $data, bool $overwrite = FALSE): string;
+  public function createEntity(array $data, bool $overwrite = FALSE);
 
   /**
    * Delete an entity.
