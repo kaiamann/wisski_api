@@ -12,6 +12,7 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\wisski_api\WisskiApiPluginManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Route;
@@ -749,7 +750,14 @@ class WisskiApiController extends ControllerBase implements ContainerInjectionIn
     /** @var \Drupal\Core\Asset\LibraryDiscoveryInterface $library_discovery */
     $library_discovery = \Drupal::service('library.discovery');
     /** @var \Drupal\swagger_ui_formatter\Service\SwaggerUiLibraryDiscoveryInterface $swagger_ui_library_discovery */
-    $swagger_ui_library_discovery = \Drupal::service('swagger_ui_formatter.swagger_ui_library_discovery');
+    try {
+      $swagger_ui_library_discovery = \Drupal::service('swagger_ui_formatter.swagger_ui_library_discovery');
+    }
+    catch (ServiceNotFoundException $exception) {
+      \Drupal::messenger()->addWarning("It seems like you do not have the swagger_ui_formatter module installed. To display the API documentation make sure it is properly installed.");
+      return [];
+    }
+
 
     // The Swagger UI library integration is only registered if the Swagger UI
     // library directory and version is correct.
