@@ -52,7 +52,7 @@ class WisskiEntityNormalizer extends EntityNormalizer {
    * {@inheritdoc}
    */
   public function normalize($object, $format = NULL, array $context = []) {
-    $normalized = parent::normalize($object, $format, $context);
+    $original = parent::normalize($object, $format, $context);
 
     // Get PbPaths and re-key them to fieldId.
     $pbs = WisskiPathbuilderEntity::loadMultiple();
@@ -72,19 +72,38 @@ class WisskiEntityNormalizer extends EntityNormalizer {
     // Create the fid->pathId mapping.
     $fidMap = [];
     foreach ($pbPaths as $pbPath) {
-      $fidMap[$pbPath['field']] = $pbPath['id'];
+      if (!$pbPath['enabled']) {
+        continue;
+      }
+      $fieldId = $pbPath['field'] != "" ? $pbPath['field'] : $pbPath['bundle'];
+      $fidMap[$fieldId][] = $pbPath['id'];
     }
+    // return $fidMap;
 
-    foreach ($normalized as $fieldId => $values) {
+    $normalized = [];
+
+    foreach ($original as $fieldId => $values) {
+      # Copy over meta keys if flag is set.
       if (in_array($fieldId, self::META_KEYS)) {
-        if (array_key_exists('meta', $context) && !$context['meta']) {
-          unset($normalized[$fieldId]);
+        if (array_key_exists('meta', $context) && $context['meta']) {
+          $normalized[$fieldId] = $values;
         }
         continue;
       }
 
+      # Copy over wisski keys.
+      if (in_array($fieldId, self::WISSKI_KEYS)) {
+        $normalized[$fieldId] = $values;
+        continue;
+      }
+
+      # Take a guess at the correct path_name
+      $pathName = current($fidMap[$fieldId]);
+
+      $newValues = [];
+
       foreach ($values as $idx => $keys) {
-        // Catch entity references and replace EID with URIs them.
+        // Catch entity references and replace EID with URIs.
         if (array_key_exists('target_type', $keys) && $keys['target_type'] == 'wisski_individual') {
           // Check if entity references should be expanded.
           if (array_key_exists('expand', $context) && $context['expand']) {
@@ -92,18 +111,23 @@ class WisskiEntityNormalizer extends EntityNormalizer {
             // that we never expand entity-references, which might contain
             // circular relations. Also make sure that this sub-bundle belongs
             // to the current entity's bundle.
-            if ($pbPaths[$fidMap[$fieldId]]['is_group'] && self::belongsTo($fieldId, $bundle, $pbPaths, $fidMap)) {
-              $normalized[$fieldId][$idx] = [];
+            if ($pbPaths[$pathName]['is_group'] && self::belongsTo($fieldId, $bundle, $pbPaths, $fidMap)) {
+              $newValues[$idx] = [];
               $subEntity = WisskiEntity::load($keys['target_id']);
-              $normalized[$fieldId][$idx]['entity'] = $this->normalize($subEntity, context: $context);
+              $newValues[$idx]['entity'] = $this->normalize($subEntity, context: $context);
               continue;
             }
           }
           $uri = current(AdapterHelper::doGetUrisForDrupalIdAsArray($keys['target_id']));
-          $normalized[$fieldId][$idx] = [];
-          $normalized[$fieldId][$idx]['target_uri'] = $uri;
+          $newValues[$idx] = [];
+          $newValues[$idx]['target_uri'] = $uri;
+          continue;
         }
+        $newValues[$idx] = $keys;
+
       }
+      # TODO: see if we want to use the pid here instead.
+      $normalized[$fieldId] = $newValues;
     }
     return $normalized;
   }
@@ -128,17 +152,24 @@ class WisskiEntityNormalizer extends EntityNormalizer {
     if (!array_key_exists($fieldId, $fidMap)) {
       return FALSE;
     }
-    // Return FALSE if the parent bundle is not known.
-    $child = $pbPaths[$fidMap[$fieldId]];
-    if (!array_key_exists($child['parent'], $pbPaths)) {
-      return FALSE;
+
+    // Return FALSE if the parent bundles are not known.
+    $pathsIds = $fidMap[$fieldId];
+    foreach ($pathsIds as $pathId) {
+      $child =  $pbPaths[$pathId];
+      if (!array_key_exists($child['parent'], $pbPaths)) {
+        continue;
+      }
+      $parent = $pbPaths[$child['parent']];
+      if ($parent['field'] == $bundleId) {
+        return TRUE;
+      }
+      // Check if the fields' parent bundle belongs to the specified bundle.
+      if (self::belongsTo($parent['field'], $bundleId, $pbPaths, $fidMap)){
+        return TRUE;
+      }
     }
-    $parent = $pbPaths[$child['parent']];
-    if ($parent['field'] == $bundleId) {
-      return TRUE;
-    }
-    // Check if the fields' parent bundle belongs to the specified bundle.
-    return self::belongsTo($parent['field'], $bundleId, $pbPaths, $fidMap);
+    return FALSE;
   }
 
   /**
@@ -164,7 +195,7 @@ class WisskiEntityNormalizer extends EntityNormalizer {
    * @return \Drupal\wisski_core\Entity\WisskiEntity
    *   The denormalized entity.
    */
-  private function denormalizeEntity(array $data, ?string $format = NULL, array $context = []): WisskiEntity {
+  private function denormalizeEntity(array $data, ?string $format = NULL, array $context = []) {
     foreach ($data as $fieldId => $values) {
       if (in_array($fieldId, self::META_KEYS) || in_array($fieldId, self::WISSKI_KEYS)) {
         continue;
