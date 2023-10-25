@@ -73,8 +73,24 @@ class WisskiPathbuilderEntityNormalizer extends EntityNormalizer {
    */
   public function normalize($object, $format = NULL, array $context = []): array {
     if ($object instanceof WisskiPathbuilderEntity) {
-      // 'tree' => $object->getPathTree(),.
-      // 'paths' => $object->getPbPaths(),.
+      $pbPaths = $object->getPbPaths();
+
+      // Get more information from the path entity.
+      $extendedPbPaths = [];
+      foreach ($pbPaths as $pathId => $pbPath) {
+        $path = WisskiPathEntity::load($pathId);
+        foreach (self::PATH_PROPERTIES as $property => $function) {
+          $pbPath[$property] = $path->$function();
+        }
+        $extendedPbPaths[$pathId] = $pbPath;
+      }
+
+      return [
+        'id' => $object->id(),
+        'name' => $object->getName(),
+        'adapter' => $object->getAdapterId(),
+        'paths' => $extendedPbPaths,
+      ];
       return $this->normalizePathbuilder($object);
     }
     return NULL;
