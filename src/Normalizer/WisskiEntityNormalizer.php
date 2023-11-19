@@ -2,11 +2,13 @@
 
 namespace Drupal\wisski_api\Normalizer;
 
+use ArrayObject;
 use Drupal\serialization\Normalizer\EntityNormalizer;
 use Drupal\wisski_core\Entity\WisskiEntity;
 use Drupal\wisski_core\WisskiEntityInterface;
 use Drupal\wisski_pathbuilder\Entity\WisskiPathbuilderEntity;
 use Drupal\wisski_salz\AdapterHelper;
+
 
 /**
  * A normalizer for WisskiEntities.
@@ -51,7 +53,7 @@ class WisskiEntityNormalizer extends EntityNormalizer {
   /**
    * {@inheritdoc}
    */
-  public function normalize($object, $format = NULL, array $context = []) {
+  public function normalize($object, $format = NULL, array $context = []): ArrayObject|array|string|int|float|bool|null {
     $original = parent::normalize($object, $format, $context);
 
     // Get PbPaths and re-key them to fieldId.
@@ -175,7 +177,7 @@ class WisskiEntityNormalizer extends EntityNormalizer {
   /**
    * {@inheritdoc}
    */
-  public function denormalize($data, $class, $format = NULL, array $context = []) {
+  public function denormalize($data, $class, $format = NULL, array $context = []): mixed {
     return $this->denormalizeEntity($data, $format, $context);
   }
 

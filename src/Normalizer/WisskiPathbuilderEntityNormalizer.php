@@ -158,7 +158,7 @@ class WisskiPathbuilderEntityNormalizer extends EntityNormalizer {
   /**
    * {@inheritdoc}
    */
-  public function denormalize($data, $class, $format = NULL, array $context = []) {
+  public function denormalize($data, $class, $format = NULL, array $context = []): mixed {
     $pbPaths = [];
     $pb_data['pathtree'] = $this->splitPathTreeAndPbPaths($data['paths'], $pbPaths);
     $pb_data['pbpaths'] = $pbPaths;
