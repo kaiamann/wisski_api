@@ -25,7 +25,7 @@ The module reads this config for each API and creates the routes accordingly.
 
 The actual API class is defined in `src/Plugins/wisski_api`. Make sure to add the `@WisskiApi` plugin annotation to the class and set config name to the correct config in `config/install`.
 In this plugin annotation you can also define custom permissions to be used in the API like this: 
-```json
+```php
 @WisskiAPI {
     // The Plugin Id. Required by Drupal.
     id = "example_api_v0",
