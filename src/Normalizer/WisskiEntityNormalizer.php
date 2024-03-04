@@ -99,6 +99,12 @@ class WisskiEntityNormalizer extends EntityNormalizer {
         continue;
       }
 
+      # Check if the field even exists in a pathbuilder.
+      # This is for leaving out things like view-fields.
+      if (!in_array($fieldId, $fidMap)) {
+        continue;
+      }
+
       # Take a guess at the correct path_name
       $pathName = current($fidMap[$fieldId]);
 
