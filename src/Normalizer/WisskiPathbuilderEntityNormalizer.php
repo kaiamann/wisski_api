@@ -80,6 +80,10 @@ class WisskiPathbuilderEntityNormalizer extends EntityNormalizer {
       foreach ($pbPaths as $pathId => $pbPath) {
         $path = WisskiPathEntity::load($pathId);
         foreach (self::PATH_PROPERTIES as $property => $function) {
+          # Sanity check.
+          if (!$path || !method_exists($path, $function)) {
+            continue;
+          }
           $pbPath[$property] = $path->$function();
         }
         $extendedPbPaths[$pathId] = $pbPath;
