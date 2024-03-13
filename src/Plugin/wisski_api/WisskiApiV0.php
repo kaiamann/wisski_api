@@ -202,17 +202,6 @@ class WisskiApiV0 extends PluginBase implements WisskiApiInterface, ContainerFac
   }
 
   /**
-   * Undocumented function.
-   *
-   * @return void
-   *   Something..
-   */
-  public function debug() {
-    $pb = $this->getPathbuilder("gemaeldesammlung");
-    return $pb->uuid();
-  }
-
-  /**
    * TODO: move this to the PB.
    *
    * Gets a sub-tree for a specific path of the pathTree of a pathbuilder.

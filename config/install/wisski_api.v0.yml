@@ -3,8 +3,8 @@ info:
   title: WissKI API - OpenAPI 3.0
   description: |-
     This is the WissKI API based on the OpenAPI 3.0 specification. You can find out more about
-    WissKI at [https://wiss-ki.eu](https://wiss-ki.eu). 
-    
+    WissKI at [https://wiss-ki.eu](https://wiss-ki.eu).
+
     Some useful links:
     - [The WissKI project page](https://www.drupal.org/project/wisski)
   termsOfService: http://swagger.io/terms/
@@ -193,10 +193,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Pathbuilder' 
+                $ref: '#/components/schemas/Pathbuilder'
             application/xml:
               schema:
-                $ref: '#/components/schemas/Pathbuilder' 
+                $ref: '#/components/schemas/Pathbuilder'
         '400':
           description: Invalid ID
       security:
@@ -264,7 +264,7 @@ paths:
                 type: array
                 items:
                   type: integer
-                example: 
+                example:
                   - bundles: 13
                   - sub_bundles: 8
                   - fields: 69
@@ -619,7 +619,7 @@ paths:
                 type: array
                 items:
                   type: string
-                example: 
+                example:
                   - https://example.wisski.data.fau.de/wisski/navigate/28/view
         '400':
           description: Invalid ID supplied
@@ -628,32 +628,7 @@ paths:
       security:
         - ApiKey:
           - wisski_api.v0.read
-  
-  /debug:
-    get:
-      tags:
-        - Entity
-      summary: Get Entity views by URI
-      description: Returns the frontend view links for a single Entity
-      operationId: debug
-      responses:
-        '200':
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: string
-                example: 
-                  - https://example.wisski.data.fau.de/wisski/navigate/28/view
-        '400':
-          description: Invalid ID supplied
-        '404':
-          description: Entity not found
-      security:
-        - ApiKey:
-          - wisski_api.v0.read
+
 
 # ------------------
 # --- Components ---
@@ -689,11 +664,11 @@ components:
               $ref: '#/components/schemas/Path'
           description: The paths contained within this pathbuilder.
       description: Abstraction of a WissKI pathbuilder.
-      
+
     Path:
       type: object
       properties:
-        id: 
+        id:
           type: string
           example: sammlungsobjekt
           description: The id of the path.
@@ -722,7 +697,7 @@ components:
           example: string_textfield
           description: The widget that is used to display the field value.
         formatterwidget:
-          type: string 
+          type: string
           example: string
           description: The widget that is used to format the field value.
         cardinality:
@@ -739,7 +714,7 @@ components:
           description: Indicates if this path is a group.
         path_array:
           type: array
-          items: 
+          items:
             type: string
           example:
           - http://erlangen-crm.org/E1_Entity
@@ -792,11 +767,11 @@ components:
           description: The operator
         value:
           $ref: "#/components/schemas/AnyValue"
-          
+
     Bundle:
       type: object
       properties:
-        id: 
+        id:
           type: string
           example: bbbf2acb5226153d65f3821e36068ee6
         label:
@@ -817,7 +792,7 @@ components:
     Field:
       type: object
       properties:
-        id: 
+        id:
           type: string
           example: person_name
         label:
@@ -827,7 +802,7 @@ components:
           $ref: "#/components/schemas/AnyValue"
       xml:
         name: field
-    
+
     Entity:
       type: object
       properties:
@@ -857,7 +832,7 @@ components:
         lang:
           type: string
           example: en
-        author: 
+        author:
           type: string
           example: Tom Wiesing
         eid:
@@ -870,7 +845,7 @@ components:
           example:
             - "https://example.wisski.data.fau.de/wisski/navigate/420"
 
-    
+
     AnyValue:
       description: 'Can be anything: string, number, array, object, etc.'
       example: Albrecht Dürer
@@ -883,7 +858,7 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Entity'
-  
+
 
   securitySchemes:
     ApiKey:
