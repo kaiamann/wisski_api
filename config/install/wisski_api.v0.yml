@@ -526,7 +526,53 @@ paths:
                 example:
                   - "https://example.wisski.de/12345678"
                   - "https://example.wisski.de/87654321"
+      security:
+        - ApiKey:
+            - wisski_api.read
+            - wisski_api.write
 
+
+  /entity/translate:
+    post:
+      tags:
+        - Entity
+      summary: Translate an entity
+      operationId: translateEntity
+      parameters:
+        - name: language
+          in: query
+          description: The language of the translation
+          required: true
+          schema:
+            type: string
+        - name: overwrite
+          in: query
+          description: If existing translation should be overwritten.
+          required: false
+          schema:
+            type: boolean
+            default: false
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Entity'
+              format: json
+      responses:
+        '405':
+          description: Invalid input
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                description: The URIs of the translated entities.
+                example:
+                  - "https://example.wisski.de/12345678"
+                  - "https://example.wisski.de/87654321"
       security:
         - ApiKey:
             - wisski_api.read

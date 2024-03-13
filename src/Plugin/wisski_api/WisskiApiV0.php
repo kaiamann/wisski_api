@@ -603,6 +603,33 @@ class WisskiApiV0 extends PluginBase implements WisskiApiInterface, ContainerFac
   /**
    * {@inheritdoc}
    */
+  public function translateEntity(array $data, string $langcode, bool $overwrite = FALSE) {
+    // Check if a URI is present.
+    $uri = $data['wisski_uri'][0]['value'] ?? NULL;
+    if (!$uri) {
+      throw new \Exception("No URI provided, please make sure your data contains the wisski_uri field with a vaild URI.");
+    }
+    /** @var \Drupal\wisski_core\Entity\WisskiEntity */
+    $entity = $this->loadEntity(WisskiEntity::class, $uri);
+    // Add the eid to the dataset.
+    $data['eid'][] = ['value' => $entity->id()];
+
+    if ($entity->hasTranslation($langcode)) {
+      if (!$overwrite) {
+        throw new \Exception("Entity with URI $uri already has a translation for language $langcode. To overwrite use the overwrite flag");
+      }
+      $entity->removeTranslation($langcode);
+    }
+
+    // Add the translation.
+    // TODO: actually test if this works.
+    $entity->addTranslation($langcode, $data);
+    return $entity;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function deleteEntity(string $uri): bool {
     $eid = AdapterHelper::getDrupalIdForUri($uri);
     $entity = WisskiEntity::load($eid);

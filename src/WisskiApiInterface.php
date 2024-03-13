@@ -146,7 +146,7 @@ interface WisskiApiInterface {
   public function getNormalizedEntity(string $uri, ?string $lang = NULL, ?bool $expand = FALSE, ?bool $meta = TRUE): array;
 
   /**
-   * Creates an new WissKI Entity.
+   * Create a new WissKI Entity.
    *
    * @param array $data
    *   The normalized entity data.
@@ -157,6 +157,21 @@ interface WisskiApiInterface {
    *   The URI of the new Entity.
    */
   public function createEntity(array $data, bool $overwrite = FALSE);
+
+  /**
+   * Translate a WissKI Entity.
+   *
+   * @param array $data
+   *   The normalized entity data containing the translation.
+   * @param string $language
+   *   The language that the entity is translated to.
+   * @param bool $overwrite
+   *   If existing entities should be overwritten.
+   *
+   * @return string
+   *   The URI of the translated Entity.
+   */
+  public function translateEntity(array $data, string $language, bool $overwrite = FALSE);
 
   /**
    * Delete an entity.
