@@ -22,17 +22,17 @@ class WisskiEntityNormalizer extends EntityNormalizer {
     'uuid',
     'vid',
     'langcode',
-    'revision_timestamp',
-    'revision_uid',
-    'revision_log',
     'published',
     'label',
-    'uid',
+    'preview_image',
+    'uuid',
     'created',
     'changed',
     'status',
-    'preview_image',
     'default_langcode',
+    'revision_timestamp',
+    'revision_uid',
+    'revision_log',
     'revision_default',
     'revision_translation_affected',
     'content_translation_source',
@@ -55,6 +55,9 @@ class WisskiEntityNormalizer extends EntityNormalizer {
    */
   public function normalize($object, $format = NULL, array $context = []): ArrayObject|array|string|int|float|bool|null {
     $original = parent::normalize($object, $format, $context);
+    if (array_key_exists("default", $context) && $context["default"]) {
+      return $original;
+    }
 
     // Get PbPaths and re-key them to fieldId.
     $pbs = WisskiPathbuilderEntity::loadMultiple();

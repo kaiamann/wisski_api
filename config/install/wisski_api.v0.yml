@@ -539,7 +539,7 @@ paths:
       summary: Translate an entity
       operationId: translateEntity
       parameters:
-        - name: language
+        - name: langcode
           in: query
           description: The language of the translation
           required: true

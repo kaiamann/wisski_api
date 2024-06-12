@@ -2,6 +2,7 @@
 
 namespace Drupal\wisski_api\Plugin\wisski_api;
 
+use Drupal\Component\Datetime\DateTimePlus;
 use Drupal\Core\Entity\EntityBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\EntityTypeRepositoryInterface;
@@ -621,9 +622,34 @@ class WisskiApiV0 extends PluginBase implements WisskiApiInterface, ContainerFac
       $entity->removeTranslation($langcode);
     }
 
-    // Add the translation.
-    // TODO: actually test if this works.
-    $entity->addTranslation($langcode, $data);
+    // Denormalize the translation from the API format into a Drupal entity to
+    // get the EIDs back into reference fields (sub-bundle / entity reference).
+    $translation = $this->serializer->denormalize($data, WisskiEntity::class, null);
+    // Normalize using the default Drupal normalizer, since addTranslation expects that format.
+    // This also formats timestamp fields as strings for whatever reason.
+    $translation_data = $this->serializer->normalize($translation, null, ["default" => TRUE]);
+
+    // TODO: move this reformatting to the normalizer. Maybe add another context flag for this.
+    // The addTranslation function expects the timestamps to be a number so now we
+    // have to convert the string formatted timestamps back to actual int timestamps.
+    // These are the fields that have to be converted back into timestamps.
+    $date_fields = [
+      "revision_timestamp",
+      "created",
+      "changed"
+    ];
+    foreach ($date_fields as $fieldId) {
+      // Skip if field not present.
+      if (!array_key_exists($fieldId, $translation_data)) {
+        continue;
+      }
+      $value = $translation_data[$fieldId];
+      $datetime = DateTimePlus::createFromFormat($value["format"], $value["value"]);
+      $translation_data[$fieldId] = $datetime->getTimestamp();
+    }
+
+    $translationEnt = $entity->addTranslation($langcode, $translation_data);
+    $translationEnt->save();
     return $entity;
   }
 
