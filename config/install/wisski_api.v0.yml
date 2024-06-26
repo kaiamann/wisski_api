@@ -406,7 +406,7 @@ paths:
         - Entity
       summary: List all URIs of Entities of a Bundle
       description: 'Perform an entity quer the URIs of all Entities of a Bundle'
-      operationId: getEntitiesForBundle
+      operationId: getUrisForBundle
       parameters:
         - name: bundleId
           in: path
