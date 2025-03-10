@@ -3,6 +3,7 @@
 namespace Drupal\wisski_api\Form;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Link;
@@ -37,6 +38,8 @@ class WisskiApiConfigForm extends ConfigFormBase {
    *
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The factory for configuration objects.
+   * @param \Drupal\Core\Config\TypedConfigManagerInterface
+   *   The typed configuration manager service.
    * @param \Drupal\Core\Routing\RouteBuilderInterface $router_builder
    *   The route builder.
    * @param \Drupal\wisski_api\WisskiApiPluginManagerInterface $api_manager
@@ -46,10 +49,11 @@ class WisskiApiConfigForm extends ConfigFormBase {
    */
   public function __construct(
     ConfigFactoryInterface $config_factory,
+    TypedConfigManagerInterface $typed_config_manager,
     RouteBuilderInterface $router_builder,
     WisskiApiPluginManagerInterface $api_manager,
     RequestStack $request_stack) {
-    parent::__construct($config_factory);
+    parent::__construct($config_factory, $typed_config_manager);
     $this->routerBuilder = $router_builder;
     $this->apiManager = $api_manager;
     $this->requestStack = $request_stack;
@@ -61,6 +65,7 @@ class WisskiApiConfigForm extends ConfigFormBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('config.factory'),
+      $container->get('config.typed'),
       $container->get('router.builder'),
       $container->get('plugin.manager.wisski_api'),
       $container->get('request_stack'),
