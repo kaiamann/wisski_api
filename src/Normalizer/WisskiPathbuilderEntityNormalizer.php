@@ -230,4 +230,13 @@ class WisskiPathbuilderEntityNormalizer extends EntityNormalizer {
     return $newTrees;
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function getSupportedTypes(?string $format): array {
+    return [
+      $this->supportedInterfaceOrClass => TRUE,
+    ];
+  }
+
 }

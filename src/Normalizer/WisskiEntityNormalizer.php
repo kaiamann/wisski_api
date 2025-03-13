@@ -249,4 +249,13 @@ class WisskiEntityNormalizer extends EntityNormalizer {
     // $this->entityTypeManager->getStorage(self::ENTITY_TYPE)->create($data);.
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function getSupportedTypes(?string $format): array {
+    return [
+      $this->supportedInterfaceOrClass => TRUE,
+    ];
+  }
+
 }
