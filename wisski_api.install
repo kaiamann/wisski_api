@@ -6,8 +6,10 @@
  */
 
 use Drupal\Core\File\FileSystemInterface;
+use Drupal\Core\File\FileExists;
 use Drupal\wisski_api\Controller\WisskiApiController;
 use Symfony\Component\Yaml\Yaml;
+
 
 /**
  * Implements hook_install().
@@ -34,7 +36,7 @@ function wisski_api_install() {
     $fileSystem->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
     // File extension HAS to be `yaml`, otherwise
     // Drupal will deny access to the file...
-    $path = $fileSystem->saveData($yamlData, $directory . '/' . $configName . '.yaml', FileSystemInterface::EXISTS_REPLACE);
+    $path = $fileSystem->saveData($yamlData, $directory . '/' . $configName . '.yaml', FileExists::Replace);
     \Drupal::service('logger.channel.wisski_api')->notice("Saving API v$version documentation to $path");
   }
 }
