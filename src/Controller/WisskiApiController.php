@@ -731,7 +731,7 @@ class WisskiApiController extends ControllerBase implements ContainerInjectionIn
    * @return array
    *   A Drupal render array.
    */
-  public function renderDocumentation(Request $request): array {
+  public function renderDocumentation(Request $request): array | Response {
     $path = $this->routeMatch->getRouteObject()->getPath();
     // Check if the called path exists in the config.
     $pathConfig = $this->pathMap->get($path)['get'];
@@ -745,90 +745,18 @@ class WisskiApiController extends ControllerBase implements ContainerInjectionIn
 
     $swaggerFileUrl = \Drupal::service('file_url_generator')->generate("public://wisski_api/$configName.yaml")->toString();
 
-    $element = [];
-    $library_name = 'swagger_ui_formatter.swagger_ui_integration';
-    /** @var \Drupal\Core\Asset\LibraryDiscoveryInterface $library_discovery */
-    $library_discovery = \Drupal::service('library.discovery');
-    /** @var \Drupal\swagger_ui_formatter\Service\SwaggerUiLibraryDiscoveryInterface $swagger_ui_library_discovery */
-    try {
-      $swagger_ui_library_discovery = \Drupal::service('swagger_ui_formatter.swagger_ui_library_discovery');
-    }
-    catch (ServiceNotFoundException $exception) {
-      \Drupal::messenger()->addWarning("It seems like you do not have the swagger_ui_formatter module installed. To display the API documentation make sure it is properly installed.");
-      return [];
-    }
-
-
-    // The Swagger UI library integration is only registered if the Swagger UI
-    // library directory and version is correct.
-    if ($library_discovery->getLibraryByName('swagger_ui_formatter', $library_name) === FALSE) {
-      $element = [
-        '#theme' => 'status_messages',
-        '#message_list' => [
-          'error' => [$this->t('The Swagger UI library is missing, incorrectly defined or not supported.')],
+    return [
+      '#type' => 'container',
+      '#attributes' => ['id' => 'swagger-ui'],
+      '#attached' => [
+        'library' => ['wisski_api/swagger_ui'],
+        'drupalSettings' => [
+          'swaggerUI' => [
+            'specUrl' => $swaggerFileUrl,
+          ],
         ],
-      ];
-    }
-    else {
-      $library_dir = $swagger_ui_library_discovery->libraryDirectory();
-      // Set the oauth2-redirect.html file path for OAuth2 authentication.
-      $oauth2_redirect_url = $request->getSchemeAndHttpHost() . '/' . $library_dir . '/dist/oauth2-redirect.html';
-
-      $fieldName = 'field_swaggerlink';
-      $delta = 0;
-      $element[$delta] = [
-        '#delta' => $delta,
-        '#field_name' => $fieldName,
-      ];
-      // It's the user's responsibility to set up field settings correctly
-      // and use this field formatter with valid Swagger files. Although, it
-      // could happen that a URL could not be generated from a field value.
-      if ($swaggerFileUrl === NULL) {
-        $element[$delta] += [
-          '#theme' => 'status_messages',
-          '#message_list' => [
-            'error' => [$this->t('Could not create URL to file.')],
-          ],
-        ];
-      }
-      else {
-        $element[$delta] += [
-          '#theme' => 'swagger_ui_field_item',
-          '#attached' => [
-            'library' => [
-              'swagger_ui_formatter/' . $library_name,
-            ],
-            'drupalSettings' => [
-              'swaggerUIFormatter' => [
-                "{$fieldName}-{$delta}" => [
-                  'oauth2RedirectUrl' => $oauth2_redirect_url,
-                  'swaggerFile' => $swaggerFileUrl,
-                  // 'validator' => 'default',
-                  // 'validatorUrl' => '',
-                  'docExpansion' => 'list',
-                  'showTopBar' => FALSE,
-                  'sortTagsByName' => FALSE,
-                  'supportedSubmitMethods' => [
-                    'get',
-                    'put',
-                    'post',
-                    'delete',
-                    'options',
-                    'head',
-                    'patch',
-                  ],
-                ],
-              ],
-            ],
-          ],
-        ];
-      }
-    }
-
-    // @todo see if this even does anything.
-    $cacheable_metadata = CacheableMetadata::createFromRenderArray($element)->merge(CacheableMetadata::createFromObject($swagger_ui_library_discovery));
-    $cacheable_metadata->applyTo($element);
-    return $element;
+      ],
+    ];
   }
 
   /**

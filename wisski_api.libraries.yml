@@ -1,0 +1,11 @@
+swagger_ui:
+  version: 5.21.0
+  js:
+    js/swagger-ui/swagger-ui-bundle.js: {}
+    js/swagger-ui/swagger-ui-standalone-preset.js: {}
+    js/swagger-ui/init-swagger.js: {}
+  css:
+    theme:
+      js/swagger-ui/swagger-ui.css: {}
+  dependencies:
+    - core/jquery
